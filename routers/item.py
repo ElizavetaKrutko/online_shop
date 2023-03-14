@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Query, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sql_online_shop import crud, schemas
-from dependencies import get_db
+from dependencies import get_db, is_superuser
 from sqlalchemy import exc
 from typing import Union
 
@@ -13,7 +13,7 @@ router = APIRouter(
 
 
 @router.post("/", response_model=schemas.Item)
-def create_category_item(item: schemas.ItemBase, db: Session = Depends(get_db)):
+def create_category_item(item: schemas.ItemBase, db: Session = Depends(get_db), admin_user: schemas.UserRead = Depends(is_superuser)):
     try:
         return crud.create_category_item(db=db, item=item)
     except exc.IntegrityError as err:
@@ -22,7 +22,7 @@ def create_category_item(item: schemas.ItemBase, db: Session = Depends(get_db)):
 
 
 @router.delete("/{item_id}")
-def delete_category_item(item_id: int, db: Session = Depends(get_db)):
+def delete_category_item(item_id: int, db: Session = Depends(get_db), admin_user: schemas.UserRead = Depends(is_superuser)):
     try:
         if crud.delete_category_item(db, item_id=item_id):
             return f'Row with id = {item_id} was successfully deleted'
@@ -34,7 +34,7 @@ def delete_category_item(item_id: int, db: Session = Depends(get_db)):
 
 
 @router.patch("/{item_id}")
-def update_item(item_id: int, item: schemas.ItemUpdate, db: Session = Depends(get_db)):
+def update_item(item_id: int, item: schemas.ItemUpdate, db: Session = Depends(get_db), admin_user: schemas.UserRead = Depends(is_superuser)):
     try:
         if crud.update_item(db, item_id=item_id, item=item):
             return f'Row with id = {item_id} was successfully updated'

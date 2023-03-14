@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from . import models, schemas
-from typing import Union
+from typing import Union, Any
+import utils
 
 
 def get_category(db: Session, category_id: int):
@@ -60,7 +61,6 @@ def delete_category_item(db: Session, item_id: int):
 
 def update_item(db: Session, item_id: int, item: schemas.ItemUpdate):
     item_dict = item.dict(exclude_unset=True)
-    print(item_dict)
     db_item_query = db.query(models.Item).filter(models.Item.id == item_id)
     db_item = db_item_query.first()
     if db_item:
@@ -81,3 +81,54 @@ def get_items(db: Session, item_category_id: Union[list, None], skip: int = 0, l
                 limit).all()
     else:
         return db.query(models.Item).offset(skip).limit(limit).all()
+
+
+# USERS
+def create_user(db: Session, user: schemas.UserCreate):
+    hashed_password = utils.get_password_hash(user.password)
+    user_data = user.dict()
+    del user_data["password"]
+    user_data["hashed_password"] = hashed_password
+    db_user = models.User(**user_data)
+    db.add(db_user)
+    db.commit()
+    return db_user
+
+
+def get_user_by_username(db: Session, username: str):
+    return db.query(models.User).filter(models.User.username == username).first()
+
+
+def get_user_by_email(db: Session, email: str):
+    return db.query(models.User).filter(models.User.email == email).first()
+
+
+def delete_user(db: Session, user_id: int):
+    db_user = db.query(models.User).filter(models.User.id == user_id).delete()
+    db.commit()
+    return db_user
+
+
+def update_user(db: Session, user_id: int, user: schemas.UserUpdate):
+    print(type(user))
+    user_dict = user.dict(exclude_unset=True)
+    db_user_query = db.query(models.User).filter(models.User.id == user_id)
+    db_user = db_user_query.first()
+    if db_user:
+        db_user_query.filter(models.User.id == user_id).update(user_dict, synchronize_session=False)
+        db.commit()
+        db.refresh(db_user)
+        return db_user
+
+
+def get_user(db: Session, user_id: int):
+    return db.query(models.User).filter(models.User.id == user_id).first()
+
+
+def get_users(db: Session, skip: int = 0, limit: int = 100):
+    db_users = db.query(models.User).offset(skip).limit(limit).all()
+    return db_users
+
+
+def get_info_about_me(db: Session, username: str):
+    return db.query(models.User).filter(models.User.username == username).first()
